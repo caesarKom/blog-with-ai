@@ -1,0 +1,73 @@
+generator client {
+    provider        = "prisma-client-js"
+    previewFeatures = ["driverAdapters", "fullTextSearchPostgres"]
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+model User {
+    id              String          @id @default(cuid())
+    name            String
+    email           String          @unique
+    password        String
+    profileImageUrl String?
+    bio             String?
+    role            Role            @default(MEMBER)
+    posts           BlogPost[]
+    comments        Comment[]
+    parentComments  ParentComment[]
+    createdAt       DateTime        @default(now())
+    updatedAt       DateTime        @updatedAt()
+}
+
+model BlogPost {
+    id            String          @id @default(cuid())
+    title         String
+    slug          String          @unique
+    content       String
+    coverImageUrl String?
+    isDraft       Boolean         @default(false)
+    views         Int             @default(0)
+    likes         Int             @default(0)
+    generatedByAI Boolean         @default(false)
+    tags          String[]
+    createdAt     DateTime        @default(now())
+    updatedAt     DateTime        @updatedAt()
+    author        User            @relation(fields: [authorId], references: [id])
+    authorId      String
+    comments      Comment[]
+    parentComment ParentComment[]
+}
+
+model Comment {
+    id            String          @id @default(cuid())
+    content       String?
+    parentComment ParentComment[]
+    authorId      String
+    author        User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
+    postId        String
+    post          BlogPost        @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt()
+}
+
+model ParentComment {
+    id        String   @id @default(cuid())
+    authorId  String
+    author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+    content   String?
+    commentId String?
+    comments  Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+    postId    String
+    post      BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+}
+
+enum Role {
+    ADMIN
+    MEMBER
+    GHOST
+}
